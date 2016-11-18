@@ -29,7 +29,7 @@ namespace Kentor.AuthServices
                 return ProcessLogoutNameIdentifier(claim);
             }
 
-            if(claim.Type == ClaimTypes.NameIdentifier)
+            if (claim.Type == ClaimTypes.NameIdentifier)
             {
                 return ProcessNameIdentifier(claim);
             }
@@ -41,30 +41,34 @@ namespace Kentor.AuthServices
         {
             var fields = DelimitedString.Split(claim.Value);
 
-            var saml2NameIdentifier = new Saml2NameIdentifier(fields[4]);
+            var saml2NameIdentifier = new Saml2NameIdentifier(fields.Length > 4 ? fields[4] : fields[0]);
 
             if (!string.IsNullOrEmpty(fields[0]))
             {
                 saml2NameIdentifier.NameQualifier = fields[0];
             }
-            if (!string.IsNullOrEmpty(fields[1]))
+
+            if (fields.Length > 1)
             {
-                saml2NameIdentifier.SPNameQualifier = fields[1];
-            }
-            if (!string.IsNullOrEmpty(fields[2]))
-            {
-                saml2NameIdentifier.Format = new Uri(fields[2]);
-            }
-            if (!string.IsNullOrEmpty(fields[3]))
-            {
-                saml2NameIdentifier.SPProvidedId = fields[3];
+                if (!string.IsNullOrEmpty(fields[1]))
+                {
+                    saml2NameIdentifier.SPNameQualifier = fields[1];
+                }
+                if (!string.IsNullOrEmpty(fields[2]))
+                {
+                    saml2NameIdentifier.Format = new Uri(fields[2]);
+                }
+                if (!string.IsNullOrEmpty(fields[3]))
+                {
+                    saml2NameIdentifier.SPProvidedId = fields[3];
+                }
             }
 
             return saml2NameIdentifier;
         }
 
         private static Saml2NameIdentifier ProcessNameIdentifier(Claim claim)
-        { 
+        {
             var saml2NameIdentifier = new Saml2NameIdentifier(claim.Value);
 
             claim.ExtractProperty(ClaimProperties.SamlNameIdentifierFormat,
