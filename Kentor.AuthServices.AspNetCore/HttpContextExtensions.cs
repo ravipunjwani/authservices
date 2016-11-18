@@ -13,20 +13,20 @@ namespace Kentor.AuthServices.AspNetCore
             this HttpContext context,
             Func<byte[], byte[]> cookieDecryptor)
         {
-            if(context == null)
+            if (context == null)
             {
                 return null;
             }
 
             IEnumerable<KeyValuePair<string, string[]>> formData = null;
-            if(context.Request.Body != null && context.Request.Method.ToUpper() == "POST")
+            if (context.Request.Body != null && context.Request.Method.ToUpper() == "POST" && context.Request.ContentType == "application/x-www-form-urlencoded")
             {
                 var formCollection = await context.Request.ReadFormAsync();
                 formData = formCollection.Select(d => new KeyValuePair<string, string[]>(d.Key, d.Value.ToArray()));
             }
 
             var applicationRootPath = context.Request.PathBase.Value;
-            if(string.IsNullOrEmpty(applicationRootPath))
+            if (string.IsNullOrEmpty(applicationRootPath))
             {
                 applicationRootPath = "/";
             }
