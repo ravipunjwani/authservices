@@ -1,18 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.IdentityModel.Tokens;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Xml;
-using System.Linq;
-using Kentor.AuthServices.Exceptions;
-using System.Collections.Generic;
-using Kentor.AuthServices.Configuration;
-using System.Reflection;
-using System.IdentityModel.Tokens;
-using System.Globalization;
-using System.Diagnostics.CodeAnalysis;
 using System.Xml.Linq;
-using System.IO;
+using Kentor.AuthServices.Configuration;
+using Kentor.AuthServices.Exceptions;
 
 namespace Kentor.AuthServices
 {
@@ -56,12 +56,12 @@ namespace Kentor.AuthServices
         /// <param name="attributeName">Name of attribute to remove.</param>
         public static void Remove(this XmlAttributeCollection attributes, string attributeName)
         {
-            if(attributes == null)
+            if (attributes == null)
             {
                 throw new ArgumentNullException(nameof(attributes));
             }
 
-            if(attributeName == null)
+            if (attributeName == null)
             {
                 throw new ArgumentNullException(nameof(attributeName));
             }
@@ -79,17 +79,17 @@ namespace Kentor.AuthServices
         /// <param name="ns">Namespace of child</param>
         public static void RemoveChild(this XmlElement xmlElement, string name, string ns)
         {
-            if(xmlElement == null)
+            if (xmlElement == null)
             {
                 throw new ArgumentNullException(nameof(xmlElement));
             }
 
-            if(name == null)
+            if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
             }
 
-            if(ns == null)
+            if (ns == null)
             {
                 throw new ArgumentNullException(nameof(ns));
             }
@@ -107,7 +107,7 @@ namespace Kentor.AuthServices
         /// <param name="includeKeyInfo">Include public key in signed output.</param>
         public static void Sign(this XmlDocument xmlDocument, X509Certificate2 cert, bool includeKeyInfo)
         {
-            if(xmlDocument == null)
+            if (xmlDocument == null)
             {
                 throw new ArgumentNullException(nameof(xmlDocument));
             }
@@ -139,7 +139,7 @@ namespace Kentor.AuthServices
             // The transform XmlDsigExcC14NTransform and canonicalization method XmlDsigExcC14NTransformUrl is important for partially signed XML files
             // see: http://msdn.microsoft.com/en-us/library/system.security.cryptography.xml.signedxml.xmldsigexcc14ntransformurl(v=vs.110).aspx
             // The reference URI has to be set correctly to avoid assertion injections
-            // For both, the ID/Reference and the Transform/Canonicalization see as well: 
+            // For both, the ID/Reference and the Transform/Canonicalization see as well:
             // https://www.oasis-open.org/committees/download.php/35711/sstc-saml-core-errata-2.0-wd-06-diff.pdf section 5.4.2 and 5.4.3
 
             signedXml.SigningKey = (RSACryptoServiceProvider)cert.PrivateKey;
@@ -194,7 +194,7 @@ namespace Kentor.AuthServices
         /// <exception cref="InvalidSignatureException">If the data has
         /// been tampered with or is not valid according to the SAML spec.</exception>
         public static bool IsSignedByAny(
-            this XmlElement xmlElement, 
+            this XmlElement xmlElement,
             IEnumerable<SecurityKeyIdentifierClause> signingKeys,
             bool validateCertificate)
         {
@@ -229,12 +229,12 @@ namespace Kentor.AuthServices
 
             try
             {
-                foreach(var keyIdentifier in signingKeys)
+                foreach (var keyIdentifier in signingKeys)
                 {
                     var key = ((AsymmetricSecurityKey)keyIdentifier.CreateKey())
                     .GetAsymmetricAlgorithm(SignedXml.XmlDsigRSASHA1Url, false);
 
-                    if(signedXml.CheckSignature(key))
+                    if (signedXml.CheckSignature(key))
                     {
                         ValidateCertificate(validateCertificate, keyIdentifier);
                         return;
@@ -283,14 +283,17 @@ namespace Kentor.AuthServices
                         keyIdentifier.GetType().Name));
                 }
 
-                if (!new X509Certificate2(rawCert.GetX509RawData()).Verify())
+                using (var certificate = new X509Certificate2(rawCert.GetX509RawData()))
                 {
-                    throw new InvalidSignatureException("The signature was valid, but the verification of the certificate failed. Is it expired or revoked? Are you sure you really want to enable ValidateCertificates (it's normally not needed)?");
+                    if (!certificate.Verify())
+                    {
+                        throw new InvalidSignatureException("The signature was valid, but the verification of the certificate failed. Is it expired or revoked? Are you sure you really want to enable ValidateCertificates (it's normally not needed)?");
+                    }
                 }
             }
         }
 
-        static readonly PropertyInfo signaturePosition = typeof(XmlDsigEnvelopedSignatureTransform)
+        private static readonly PropertyInfo signaturePosition = typeof(XmlDsigEnvelopedSignatureTransform)
             .GetProperty("SignaturePosition", BindingFlags.Instance | BindingFlags.NonPublic);
 
         /// <summary>
@@ -304,16 +307,16 @@ namespace Kentor.AuthServices
         private static void FixSignatureIndex(SignedXml signedXml, XmlElement signatureElement)
         {
             Transform transform = null;
-            foreach(var t in ((Reference)signedXml.SignedInfo.References[0]).TransformChain)
+            foreach (var t in ((Reference)signedXml.SignedInfo.References[0]).TransformChain)
             {
                 var envelopeTransform = t as XmlDsigEnvelopedSignatureTransform;
-                if(envelopeTransform != null)
+                if (envelopeTransform != null)
                 {
                     transform = envelopeTransform;
                 }
             }
 
-            if(signaturePosition != null)
+            if (signaturePosition != null)
             {
                 var nsm = new XmlNamespaceManager(signatureElement.OwnerDocument.NameTable);
                 nsm.AddNamespace("ds", SignedXml.XmlDsigNamespaceUrl);
@@ -342,12 +345,12 @@ namespace Kentor.AuthServices
 
         private static void ValidateSignedInfo(SignedXml signedXml, XmlElement xmlElement)
         {
-            if(signedXml.SignedInfo.References.Count == 0)
+            if (signedXml.SignedInfo.References.Count == 0)
             {
                 throw new InvalidSignatureException("No reference found in Xml signature, it doesn't validate the Xml data.");
             }
 
-            if(signedXml.SignedInfo.References.Count != 1)
+            if (signedXml.SignedInfo.References.Count != 1)
             {
                 throw new InvalidSignatureException("Multiple references for Xml signatures are not allowed.");
             }
@@ -356,8 +359,8 @@ namespace Kentor.AuthServices
             var id = reference.Uri.Substring(1);
 
             var idElement = signedXml.GetIdElement(xmlElement.OwnerDocument, id);
-            
-            if(idElement != xmlElement)
+
+            if (idElement != xmlElement)
             {
                 throw new InvalidSignatureException("Incorrect reference on Xml signature. The reference must be to the root element of the element containing the signature.");
             }
@@ -410,7 +413,7 @@ namespace Kentor.AuthServices
         private static XmlDocument GetOwnerDoc(this XmlNode node)
         {
             var doc = node as XmlDocument;
-            if(doc != null)
+            if (doc != null)
             {
                 return doc;
             }
@@ -427,7 +430,7 @@ namespace Kentor.AuthServices
 
         internal static XmlElement AddAttributeIfNotNull(this XmlElement parent, string name, object value)
         {
-            if(value != null)
+            if (value != null)
             {
                 parent.SetAttribute(name, value.ToString());
             }
@@ -466,7 +469,7 @@ namespace Kentor.AuthServices
         [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "I don't care, the StringWriter contains no references to unmanaged resources")]
         public static string PrettyPrint(this XmlElement xml)
         {
-            if(xml == null)
+            if (xml == null)
             {
                 throw new ArgumentNullException(nameof(xml));
             }
