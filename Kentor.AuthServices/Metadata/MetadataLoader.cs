@@ -1,16 +1,17 @@
-﻿using Kentor.AuthServices.Internal;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IdentityModel.Metadata;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
+using Kentor.AuthServices.Internal;
 
 namespace Kentor.AuthServices.Metadata
 {
@@ -29,7 +30,7 @@ namespace Kentor.AuthServices.Metadata
         {
             return LoadIdp(metadataLocation, false);
         }
-        
+
         internal const string LoadIdpFoundEntitiesDescriptor = "Tried to load metadata for an IdentityProvider, which should be an <EntityDescriptor>, but found an <EntitiesDescriptor>. To load that metadata you should use the Federation configuration and not an IdentityProvider. You can also set the SPOptions.Compatibility.UnpackEntitiesDescriptorInIdentityProviderMetadata option to true.";
         internal const string LoadIdpUnpackingFoundMultipleEntityDescriptors = "Unpacked an EntitiesDescriptor when loading idp metadata, but found multiple EntityDescriptors.Unpacking is only supported if the metadata contains a single EntityDescriptor. Maybe you should use a Federation instead of configuring a single IdentityProvider";
 
@@ -58,11 +59,11 @@ namespace Kentor.AuthServices.Metadata
             var result = Load(metadataLocation);
 
             var entitiesDescriptor = result as ExtendedEntitiesDescriptor;
-            if(entitiesDescriptor != null)
+            if (entitiesDescriptor != null)
             {
-                if(unpackEntitiesDescriptor)
+                if (unpackEntitiesDescriptor)
                 {
-                    if(entitiesDescriptor.ChildEntities.Count > 1)
+                    if (entitiesDescriptor.ChildEntities.Count > 1)
                     {
                         throw new InvalidOperationException(LoadIdpUnpackingFoundMultipleEntityDescriptors);
                     }
@@ -78,16 +79,41 @@ namespace Kentor.AuthServices.Metadata
 
         private static MetadataBase Load(string metadataLocation)
         {
-            if(PathHelper.IsWebRootRelative(metadataLocation))
+            if (PathHelper.IsWebRootRelative(metadataLocation))
             {
                 metadataLocation = PathHelper.MapPath(metadataLocation);
             }
 
-            using (var client = new WebClient())
-            using (var stream = client.OpenRead(metadataLocation))
+            try
             {
-                return Load(stream);
+                using (HttpClientHandler httpClientHandler = new HttpClientHandler())
+                {
+                    WebProxy proxy = new WebProxy("http://localhost.:8888", false)
+                    {
+                        UseDefaultCredentials = true
+                    };
+
+                    httpClientHandler.Proxy = proxy;
+                    httpClientHandler.PreAuthenticate = true;
+                    httpClientHandler.UseDefaultCredentials = false;
+
+                    using (HttpClient client = new HttpClient(httpClientHandler))
+                    {
+                        var stream = client.GetStreamAsync(metadataLocation).Result;
+                        return Load(stream);
+                    }
+                };
             }
+            catch (Exception ex)
+            {
+                throw new HttpRequestException("Error reading from " + metadataLocation, ex);
+            }
+
+            //using (var client = new WebClient())
+            //using (var stream = client.OpenRead(metadataLocation))
+            //{
+            //    return Load(stream);
+            //}
         }
 
         internal static MetadataBase Load(Stream metadataStream)
@@ -124,7 +150,7 @@ namespace Kentor.AuthServices.Metadata
 
             var result = Load(metadataLocation);
 
-            if(result is ExtendedEntityDescriptor)
+            if (result is ExtendedEntityDescriptor)
             {
                 throw new InvalidOperationException(LoadFederationFoundEntityDescriptor);
             }
