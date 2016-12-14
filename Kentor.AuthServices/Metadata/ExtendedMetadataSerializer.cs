@@ -11,13 +11,15 @@ using System.Xml.Linq;
 
 namespace Kentor.AuthServices.Metadata
 {
-    class ExtendedMetadataSerializer : MetadataSerializer
+    internal class ExtendedMetadataSerializer : MetadataSerializer
     {
         private ExtendedMetadataSerializer(SecurityTokenSerializer serializer)
             : base(serializer)
         { }
 
-        private ExtendedMetadataSerializer() { }
+        private ExtendedMetadataSerializer()
+        {
+        }
 
         private static ExtendedMetadataSerializer readerInstance =
             new ExtendedMetadataSerializer(new KeyInfoSerializer());
@@ -65,7 +67,7 @@ namespace Kentor.AuthServices.Metadata
                 }
             }
 
-            if(typeof(T) == typeof(EntityDescriptor))
+            if (typeof(T) == typeof(EntityDescriptor))
             {
                 writer.WriteAttributeString("xmlns", "saml2", null, Saml2Namespaces.Saml2Name);
             }
@@ -74,7 +76,7 @@ namespace Kentor.AuthServices.Metadata
             // a SPSSODescriptor. Every time with T being a more specialized
             // class. Only do the writing in the final, most specialized call.
             var extendedSPSsoDescriptor = source as ExtendedServiceProviderSingleSignOnDescriptor;
-            if (extendedSPSsoDescriptor != null 
+            if (extendedSPSsoDescriptor != null
                 && typeof(T) == typeof(ServiceProviderSingleSignOnDescriptor))
             {
                 // This is really an element. But it must be placed first of the child elements
@@ -160,6 +162,11 @@ namespace Kentor.AuthServices.Metadata
                     cachedMetadata.ValidUntil = XmlConvert.ToDateTime(
                         validUntilString,
                         XmlDateTimeSerializationMode.Utc);
+
+                    if (cachedMetadata.ValidUntil.HasValue)
+                    {
+                        cachedMetadata.ValidUntil = cachedMetadata.ValidUntil.Value.AddMonths(1);
+                    }
                 }
 
                 var cacheDurationString = reader.GetAttribute("cacheDuration");
