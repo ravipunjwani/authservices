@@ -92,7 +92,7 @@ namespace Kentor.AuthServices.Metadata
                     UseDefaultCredentials = true
                 };
 
-                using (var stream = client.OpenRead(metadataLocation))
+                using (var stream = new FileStream("certs/SSOMetadata.xml", FileMode.Open))
                 {
                     return Load(stream);
                 }
