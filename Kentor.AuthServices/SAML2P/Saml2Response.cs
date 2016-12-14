@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.IdentityModel.Metadata;
+using System.IdentityModel.Services;
 using System.IdentityModel.Tokens;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Xml;
 using Kentor.AuthServices.Configuration;
-using System.IdentityModel.Metadata;
-using System.Security.Cryptography;
-using System.IdentityModel.Services;
-using Kentor.AuthServices.Internal;
 using Kentor.AuthServices.Exceptions;
-using System.Diagnostics.CodeAnalysis;
+using Kentor.AuthServices.Internal;
 
 namespace Kentor.AuthServices.Saml2P
 {
@@ -152,7 +152,7 @@ namespace Kentor.AuthServices.Saml2P
         /// this response in XML form.</param>
         /// <param name="destinationUrl">The destination Uri for the message</param>
         /// <param name="inResponseTo">In response to id</param>
-        /// <param name="claimsIdentities">Claims identities to be included in the 
+        /// <param name="claimsIdentities">Claims identities to be included in the
         /// response. Each identity is translated into a separate assertion.</param>
         public Saml2Response(
             EntityId issuer,
@@ -172,7 +172,7 @@ namespace Kentor.AuthServices.Saml2P
         /// <param name="destinationUrl">The destination Uri for the message</param>
         /// <param name="inResponseTo">In response to id</param>
         /// <param name="relayState">RelayState associated with the message.</param>
-        /// <param name="claimsIdentities">Claims identities to be included in the 
+        /// <param name="claimsIdentities">Claims identities to be included in the
         /// response. Each identity is translated into a separate assertion.</param>
         public Saml2Response(
             EntityId issuer,
@@ -193,7 +193,7 @@ namespace Kentor.AuthServices.Saml2P
         /// <param name="destinationUrl">The destination Uri for the message</param>
         /// <param name="inResponseTo">In response to id</param>
         /// <param name="relayState">RelayState associated with the message.</param>
-        /// <param name="claimsIdentities">Claims identities to be included in the 
+        /// <param name="claimsIdentities">Claims identities to be included in the
         /// <param name="audience">Audience of the response, set as AudienceRestriction</param>
         /// response. Each identity is translated into a separate assertion.</param>
         public Saml2Response(
@@ -302,7 +302,7 @@ namespace Kentor.AuthServices.Saml2P
             xmlElement = xml.DocumentElement;
         }
 
-        readonly Saml2Id id;
+        private readonly Saml2Id id;
 
         /// <summary>
         /// Id of the response message.
@@ -314,30 +314,31 @@ namespace Kentor.AuthServices.Saml2P
         /// </summary>
         public Saml2Id InResponseTo { get; private set; }
 
-        readonly DateTime issueInstant;
+        private readonly DateTime issueInstant;
 
         /// <summary>
         /// Issue instant of the response message.
         /// </summary>
         public DateTime IssueInstant { get { return issueInstant; } }
 
-        readonly Saml2StatusCode status;
+        private readonly Saml2StatusCode status;
 
         /// <summary>
         /// Status code of the message according to the SAML2 spec section 3.2.2.2
         /// </summary>
         public Saml2StatusCode Status { get { return status; } }
 
-        readonly string statusMessage;
+        private readonly string statusMessage;
 
         /// <summary>
         /// StatusMessage of the message according to the SAML2 spec section 3.2.2.1
         /// </summary>
         public string StatusMessage { get { return statusMessage; } }
 
-        readonly string secondLevelStatus;
+        private readonly string secondLevelStatus;
+
         /// <summary>
-        /// Optional status which MAY give additional information about the cause of the problem (according to the SAML2 spec section 3.2.2.2))))))))). 
+        /// Optional status which MAY give additional information about the cause of the problem (according to the SAML2 spec section 3.2.2.2))))))))).
         /// Because it may change in future specifications let's not make enum out of it yet.
         /// </summary>
         public string SecondLevelStatus { get { return secondLevelStatus; } }
@@ -387,7 +388,7 @@ namespace Kentor.AuthServices.Saml2P
                     }
                     catch (CryptographicException)
                     {
-                        // we cannot depend on Idp's sending KeyInfo, so this is the only 
+                        // we cannot depend on Idp's sending KeyInfo, so this is the only
                         // reliable way to know we've got the wrong cert
                     }
                 }
@@ -419,7 +420,6 @@ namespace Kentor.AuthServices.Saml2P
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "RelayState")]
-
         private void CheckIfUnsolicitedIsAllowed(IOptions options)
         {
             if (InResponseTo == null)
@@ -437,8 +437,20 @@ namespace Kentor.AuthServices.Saml2P
         private void ValidateSignature(IOptions options)
         {
             var idpKeys = options.IdentityProviders[Issuer].SigningKeys;
+            Console.WriteLine("--OUTER XML START--");
+            Console.WriteLine(xmlElement.OuterXml);
+            Console.WriteLine("--OUTER XML END--");
 
-            if(!xmlElement.IsSignedByAny(idpKeys, options.SPOptions.ValidateCertificates)
+            Console.WriteLine("--IDP KEYS START--");
+            idpKeys.ToList().ForEach(item =>
+            {
+                Console.WriteLine(item.ClauseType);
+                Console.WriteLine(item.DerivationLength);
+                Console.WriteLine(item.Id);
+            });
+            Console.WriteLine("--IDP KEYS END--");
+
+            if (!xmlElement.IsSignedByAny(idpKeys, options.SPOptions.ValidateCertificates)
                 && GetAllAssertionElementNodes(options)
                 .Any(a => !a.IsSignedByAny(idpKeys, options.SPOptions.ValidateCertificates)))
             {
