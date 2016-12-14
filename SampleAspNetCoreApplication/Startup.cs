@@ -1,26 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IdentityModel.Metadata;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using Kentor.AuthServices;
+using Kentor.AuthServices.AspNetCore;
+using Kentor.AuthServices.Configuration;
+using Kentor.AuthServices.Metadata;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SampleAspNetCoreApplication.Data;
 using SampleAspNetCoreApplication.Models;
 using SampleAspNetCoreApplication.Services;
-using Kentor.AuthServices.AspNetCore;
-using System.IdentityModel.Metadata;
-using Kentor.AuthServices;
-using System.Security.Cryptography.X509Certificates;
-using Kentor.AuthServices.Configuration;
-using System.Globalization;
-using Kentor.AuthServices.Metadata;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
 
 namespace SampleAspNetCoreApplication
 {
@@ -33,7 +33,7 @@ namespace SampleAspNetCoreApplication
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
 
-            if(env.IsDevelopment())
+            if (env.IsDevelopment())
             {
                 // For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
                 builder.AddUserSecrets();
@@ -55,7 +55,7 @@ namespace SampleAspNetCoreApplication
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
             // Register custom claims principal factory for kentor auth services to handle logout claims
-            services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, 
+            services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>,
                 KentorAuthServicesUserClaimsPrincipalFactory<ApplicationUser, IdentityRole>>();
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -75,7 +75,7 @@ namespace SampleAspNetCoreApplication
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
-            if(env.IsDevelopment())
+            if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
@@ -91,6 +91,7 @@ namespace SampleAspNetCoreApplication
             app.UseIdentity();
 
             var options = CreateAuthServicesOptions(identityOptions.Value);
+
             app.UseKentorAuthServices(options);
 
             // Add external authentication middleware below. To configure them please see http://go.microsoft.com/fwlink/?LinkID=532715
@@ -136,7 +137,7 @@ namespace SampleAspNetCoreApplication
             {
                 EntityId = new EntityId("http://localhost:56327/AuthServices"),
                 ReturnUrl = new Uri("http://localhost:56327/Account/ExternalLoginCallback"),
-                // NOTE: DiscoveryService implementation in AuthServices has a 
+                // NOTE: DiscoveryService implementation in AuthServices has a
                 // bug (GitHub issue #182) that doesn't preserve auth properties.
                 // ASP.NET Core needs auth properties to preserve the LoginProvider
                 // DiscoveryServiceUrl = new Uri("http://localhost:52071/DiscoveryService"),

@@ -1,4 +1,15 @@
 ﻿using System;
+using System.Globalization;
+using System.IdentityModel.Metadata;
+using System.IdentityModel.Selectors;
+using System.IdentityModel.Tokens;
+using System.Security.Cryptography.X509Certificates;
+using System.Web.Hosting;
+using Kentor.AuthServices;
+using Kentor.AuthServices.Configuration;
+using Kentor.AuthServices.Metadata;
+using Kentor.AuthServices.Owin;
+using Kentor.AuthServices.WebSso;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin;
@@ -6,17 +17,6 @@ using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.Google;
 using Owin;
 using SampleOwinApplication.Models;
-using Kentor.AuthServices.Owin;
-using Kentor.AuthServices.Configuration;
-using System.IdentityModel.Metadata;
-using System.Globalization;
-using Kentor.AuthServices.Metadata;
-using Kentor.AuthServices;
-using Kentor.AuthServices.WebSso;
-using System.Security.Cryptography.X509Certificates;
-using System.Web.Hosting;
-using System.IdentityModel.Selectors;
-using System.IdentityModel.Tokens;
 
 namespace SampleOwinApplication
 {
@@ -40,7 +40,7 @@ namespace SampleOwinApplication
                 Provider = new CookieAuthenticationProvider
                 {
                     // Enables the application to validate the security stamp when the user logs in.
-                    // This is a security feature which is used when you change a password or add an external login to your account.  
+                    // This is a security feature which is used when you change a password or add an external login to your account.
                     OnValidateIdentity = SecurityStampValidator.OnValidateIdentity<ApplicationUserManager, ApplicationUser>(
                         validateInterval: TimeSpan.FromMinutes(30),
                         regenerateIdentity: (manager, user) => user.GenerateUserIdentityAsync(manager))
@@ -60,11 +60,11 @@ namespace SampleOwinApplication
             };
 
             var idp = new IdentityProvider(new EntityId("http://stubidp.kentor.se/Metadata"), spOptions)
-                {
-                    AllowUnsolicitedAuthnResponse = true,
-                    Binding = Saml2BindingType.HttpRedirect,
-                    SingleSignOnServiceUrl = new Uri("http://stubidp.kentor.se")
-                };
+            {
+                AllowUnsolicitedAuthnResponse = true,
+                Binding = Saml2BindingType.HttpRedirect,
+                SingleSignOnServiceUrl = new Uri("http://stubidp.kentor.se")
+            };
 
             idp.SigningKeys.AddConfiguredKey(
                 new X509Certificate2(

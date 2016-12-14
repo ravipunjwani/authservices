@@ -69,7 +69,7 @@
   },
 
   "frameworks": {
-    "net451": {}
+    "net461": {}
   },
 
   "buildOptions": {
