@@ -226,7 +226,7 @@ namespace Kentor.AuthServices
             bool validateCertificate)
         {
             FixSignatureIndex(signedXml, signatureElement);
-
+            Console.WriteLine($"{signingKeys.Count()} key identifier/s found to verify the signature");
             try
             {
                 foreach (var keyIdentifier in signingKeys)
@@ -238,6 +238,10 @@ namespace Kentor.AuthServices
                     {
                         ValidateCertificate(validateCertificate, keyIdentifier);
                         return;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"check signature failed with key: {key.ToXmlString(false)}");
                     }
                 }
                 var containedKey = signedXml.Signature.KeyInfo.OfType<KeyInfoX509Data>()
@@ -345,6 +349,10 @@ namespace Kentor.AuthServices
 
         private static void ValidateSignedInfo(SignedXml signedXml, XmlElement xmlElement)
         {
+            Console.WriteLine("---- XML ELEMENT ----");
+            Console.WriteLine(xmlElement.OuterXml);
+            Console.WriteLine("---- XML ELEMENT ----");
+
             if (signedXml.SignedInfo.References.Count == 0)
             {
                 throw new InvalidSignatureException("No reference found in Xml signature, it doesn't validate the Xml data.");
@@ -357,13 +365,20 @@ namespace Kentor.AuthServices
 
             var reference = (Reference)signedXml.SignedInfo.References[0];
             var id = reference.Uri.Substring(1);
+            Console.WriteLine("---- URI SUBSTRING(1) AS ID ----");
+            Console.WriteLine(id);
+            Console.WriteLine("---- URI SUBSTRING(1) AS ID ----");
 
-            var idElement = signedXml.GetIdElement(xmlElement.OwnerDocument, id);
+            Console.WriteLine("---- OWNER DOCUMENT OUTER XML ----");
+            Console.WriteLine(xmlElement.OwnerDocument.OuterXml);
+            Console.WriteLine("---- OWNER DOCUMENT OUTER XML ----");
 
-            if (idElement != xmlElement)
-            {
-                throw new InvalidSignatureException("Incorrect reference on Xml signature. The reference must be to the root element of the element containing the signature.");
-            }
+            //var idElement = signedXml.GetIdElement(xmlElement.OwnerDocument, id);
+
+            //if (idElement != xmlElement)
+            //{
+            //    throw new InvalidSignatureException("Incorrect reference on Xml signature. The reference must be to the root element of the element containing the signature.");
+            //}
 
             foreach (Transform transform in reference.TransformChain)
             {
