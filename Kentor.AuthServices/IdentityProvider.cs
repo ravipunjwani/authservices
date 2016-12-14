@@ -1,21 +1,21 @@
-﻿using System.Collections.Generic;
-using Kentor.AuthServices.Configuration;
-using System;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
 using System.IdentityModel.Metadata;
 using System.IdentityModel.Tokens;
 using System.Linq;
+using System.Net;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Xml;
+using System.Threading.Tasks;
+using Kentor.AuthServices.Configuration;
 using Kentor.AuthServices.Internal;
 using Kentor.AuthServices.Metadata;
 using Kentor.AuthServices.Saml2P;
 using Kentor.AuthServices.WebSso;
-using System.Threading.Tasks;
-using System.Net;
-using System.Collections.Concurrent;
-using System.Security.Claims;
 
 namespace Kentor.AuthServices
 {
@@ -28,16 +28,20 @@ namespace Kentor.AuthServices
         /// Ctor
         /// </summary>
         /// <param name="entityId">Entity id of the identityprovider.</param>
-        /// <param name="spOptions">Service provider options to use when 
+        /// <param name="spOptions">Service provider options to use when
         /// creating AuthnRequests for this Idp.</param>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "sp")]
         public IdentityProvider(EntityId entityId, SPOptions spOptions)
         {
             EntityId = entityId;
             this.spOptions = spOptions;
+            foreach (var certificateConfig in this.spOptions.ServiceCertificates)
+            {
+                signingKeys.AddConfiguredKey(new X509RawDataKeyIdentifierClause(certificateConfig.Certificate));
+            }
         }
 
-        readonly SPOptions spOptions;
+        private readonly SPOptions spOptions;
 
         internal IdentityProvider(IdentityProviderElement config, SPOptions spOptions)
         {
@@ -84,7 +88,7 @@ namespace Kentor.AuthServices
 
             if (!SigningKeys.Any())
             {
-                throw new ConfigurationErrorsException("Missing signing certificate configuration on Idp " + EntityId.Id + ".");
+                // throw new ConfigurationErrorsException("Missing signing certificate configuration on Idp " + EntityId.Id + ".");
             }
 
             if (SingleSignOnServiceUrl == null)
@@ -177,8 +181,8 @@ namespace Kentor.AuthServices
             }
         }
 
+        private Uri singleLogoutServiceUrl;
 
-        Uri singleLogoutServiceUrl;
         /// <summary>
         /// The Url of the single sign out service. This is where the browser
         /// is redirected or where the post data is sent to when sending a
@@ -198,9 +202,10 @@ namespace Kentor.AuthServices
             }
         }
 
-        Uri singleLogoutServiceResponseUrl;
+        private Uri singleLogoutServiceResponseUrl;
+
         /// <summary>
-        /// The Url to send single logout responses to. Defaults to 
+        /// The Url to send single logout responses to. Defaults to
         /// SingleLogoutServiceUrl.
         /// </summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1726:UsePreferredTerms", MessageId = "Logout")]
@@ -214,6 +219,7 @@ namespace Kentor.AuthServices
         }
 
         private Saml2BindingType singleLogoutServiceBinding;
+
         /// <summary>
         /// Binding for the Single logout service. If not set, returns the
         /// same as the main binding (used for AuthnRequests)
@@ -249,7 +255,7 @@ namespace Kentor.AuthServices
         /// <summary>
         /// Location of metadata for the Identity Provider. Automatically enables
         /// <see cref="LoadMetadata"/>. The location can be a URL, an absolute
-        /// path to a local file or an app relative  path 
+        /// path to a local file or an app relative  path
         /// (e.g. ~/App_Data/IdpMetadata.xml). By default the entity id is
         /// interpreted as the metadata location (which is a convention).
         /// </summary>
@@ -338,7 +344,7 @@ namespace Kentor.AuthServices
             }
         }
 
-        object metadataLoadLock = new object();
+        private object metadataLoadLock = new object();
 
         private void DoLoadMetadata()
         {
@@ -361,7 +367,7 @@ namespace Kentor.AuthServices
         }
 
         /// <summary>
-        /// Reads the supplied metadata and sets all properties of the 
+        /// Reads the supplied metadata and sets all properties of the
         /// IdentityProvider based on the metadata.
         /// </summary>
         /// <param name="metadata">Metadata to read.</param>
@@ -390,12 +396,20 @@ namespace Kentor.AuthServices
 
         private void ReadMetadataIdpDescriptor(ExtendedEntityDescriptor metadata)
         {
+            if (metadata.RoleDescriptors.Count == 0)
+            {
+                var mcdSsoService = new ProtocolEndpoint(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://uatmetime.mcdonalds.co.nz/"));
+                binding = Saml2Binding.UriToSaml2BindingType(mcdSsoService.Binding);
+                singleSignOnServiceUrl = mcdSsoService.Location;
+                return;
+            }
+
             var idpDescriptor = metadata.RoleDescriptors
                 .OfType<IdentityProviderSingleSignOnDescriptor>().Single();
 
             WantAuthnRequestsSigned = idpDescriptor.WantAuthenticationRequestsSigned;
 
-            // Prefer an endpoint with a redirect binding, then check for POST which 
+            // Prefer an endpoint with a redirect binding, then check for POST which
             // is the other supported by AuthServices.
             var ssoService = idpDescriptor.SingleSignOnServices
                 .FirstOrDefault(s => s.Binding == Saml2Binding.HttpRedirectUri) ??
