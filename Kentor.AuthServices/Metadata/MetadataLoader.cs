@@ -84,36 +84,19 @@ namespace Kentor.AuthServices.Metadata
                 metadataLocation = PathHelper.MapPath(metadataLocation);
             }
 
-            try
+            using (
+                var client = new WebClient())
             {
-                using (HttpClientHandler httpClientHandler = new HttpClientHandler())
+                client.Proxy = new WebProxy("http://localhost:8888", false)
                 {
-                    WebProxy proxy = new WebProxy("http://localhost.:8888", false)
-                    {
-                        UseDefaultCredentials = true
-                    };
-
-                    httpClientHandler.Proxy = proxy;
-                    httpClientHandler.PreAuthenticate = true;
-                    httpClientHandler.UseDefaultCredentials = false;
-
-                    using (HttpClient client = new HttpClient(httpClientHandler))
-                    {
-                        var stream = client.GetStreamAsync(metadataLocation).Result;
-                        return Load(stream);
-                    }
+                    UseDefaultCredentials = true
                 };
-            }
-            catch (Exception ex)
-            {
-                throw new HttpRequestException("Error reading from " + metadataLocation, ex);
-            }
 
-            //using (var client = new WebClient())
-            //using (var stream = client.OpenRead(metadataLocation))
-            //{
-            //    return Load(stream);
-            //}
+                using (var stream = client.OpenRead(metadataLocation))
+                {
+                    return Load(stream);
+                }
+            }
         }
 
         internal static MetadataBase Load(Stream metadataStream)
