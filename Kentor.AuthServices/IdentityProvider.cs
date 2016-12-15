@@ -35,6 +35,12 @@ namespace Kentor.AuthServices
         {
             EntityId = entityId;
             this.spOptions = spOptions;
+
+            if (this.spOptions == null)
+            {
+                throw new ArgumentNullException(nameof(spOptions));
+            }
+
             foreach (var certificateConfig in this.spOptions.ServiceCertificates)
             {
                 signingKeys.AddConfiguredKey(new X509RawDataKeyIdentifierClause(certificateConfig.Certificate));

@@ -437,18 +437,20 @@ namespace Kentor.AuthServices.Saml2P
         private void ValidateSignature(IOptions options)
         {
             var idpKeys = options.IdentityProviders[Issuer].SigningKeys;
-            Console.WriteLine("--OUTER XML START--");
+            string boundary = "--OUTER XML--";
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
             Console.WriteLine(xmlElement.OuterXml);
-            Console.WriteLine("--OUTER XML END--");
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
 
-            Console.WriteLine("--IDP KEYS START--");
+            boundary = "--IDP KEYS START--";
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
             idpKeys.ToList().ForEach(item =>
             {
                 Console.WriteLine(item.ClauseType);
                 Console.WriteLine(item.DerivationLength);
                 Console.WriteLine(item.Id);
             });
-            Console.WriteLine("--IDP KEYS END--");
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
 
             if (!xmlElement.IsSignedByAny(idpKeys, options.SPOptions.ValidateCertificates)
                 && GetAllAssertionElementNodes(options)

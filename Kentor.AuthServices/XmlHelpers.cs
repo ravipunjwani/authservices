@@ -226,7 +226,7 @@ namespace Kentor.AuthServices
             bool validateCertificate)
         {
             FixSignatureIndex(signedXml, signatureElement);
-            Console.WriteLine($"{signingKeys.Count()} key identifier/s found to verify the signature");
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0} key identifier/s found to verify the signature", signingKeys.Count()));
             try
             {
                 foreach (var keyIdentifier in signingKeys)
@@ -241,7 +241,7 @@ namespace Kentor.AuthServices
                     }
                     else
                     {
-                        Console.WriteLine($"check signature failed with key: {key.ToXmlString(false)}");
+                        Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "Check signature failed with key: {0}", key.ToXmlString(false)));
                     }
                 }
                 var containedKey = signedXml.Signature.KeyInfo.OfType<KeyInfoX509Data>()
@@ -349,9 +349,10 @@ namespace Kentor.AuthServices
 
         private static void ValidateSignedInfo(SignedXml signedXml, XmlElement xmlElement)
         {
-            Console.WriteLine("---- XML ELEMENT ----");
+            string boundary = "--XML ELEMENT--";
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
             Console.WriteLine(xmlElement.OuterXml);
-            Console.WriteLine("---- XML ELEMENT ----");
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
 
             if (signedXml.SignedInfo.References.Count == 0)
             {
@@ -365,13 +366,15 @@ namespace Kentor.AuthServices
 
             var reference = (Reference)signedXml.SignedInfo.References[0];
             var id = reference.Uri.Substring(1);
-            Console.WriteLine("---- URI SUBSTRING(1) AS ID ----");
+            boundary = "--URI SUBSTRING(1) AS ID--";
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
             Console.WriteLine(id);
-            Console.WriteLine("---- URI SUBSTRING(1) AS ID ----");
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
 
-            Console.WriteLine("---- OWNER DOCUMENT OUTER XML ----");
+            boundary = "OWNER DOCUMENT OUTER XML";
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
             Console.WriteLine(xmlElement.OwnerDocument.OuterXml);
-            Console.WriteLine("---- OWNER DOCUMENT OUTER XML ----");
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "{0}", boundary));
 
             //var idElement = signedXml.GetIdElement(xmlElement.OwnerDocument, id);
 
