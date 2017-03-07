@@ -11,7 +11,7 @@ namespace Kentor.AuthServices.Configuration
     /// <summary>
     /// Certificates used by the service provider for signing or decryption.
     /// </summary>
-    public class ServiceCertificateCollection: Collection<ServiceCertificate>
+    public class ServiceCertificateCollection : Collection<ServiceCertificate>
     {
         /// <summary>
         /// Add a certificate to the collection with default status use and
@@ -41,13 +41,11 @@ namespace Kentor.AuthServices.Configuration
                 throw new ArgumentException(@"Provided certificate is not valid because it does not contain a private key.");
             }
 
-            if (item.Use == CertificateUse.Encryption || item.Use == CertificateUse.Both)
+            if (!CertificateWorksForDecryption(item.Certificate))
             {
-                if (!CertificateWorksForDecryption(item.Certificate))
-                {
-                    throw new ArgumentException(@"Provided certificate is not valid for encryption/decryption. If you only want to use it for signing, set the Use property to Signing (CertificateUse.Signing).");
-                }
+                throw new ArgumentException(@"Provided certificate is not valid for encryption/decryption. If you only want to use it for signing, set the Use property to Signing (CertificateUse.Signing).");
             }
+
             base.InsertItem(index, item);
         }
 

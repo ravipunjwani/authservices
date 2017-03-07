@@ -1,18 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.IdentityModel.Tokens;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Xml;
-using System.Xml.Linq;
-using Kentor.AuthServices.Configuration;
+using System.Linq;
 using Kentor.AuthServices.Exceptions;
+using System.Collections.Generic;
+using Kentor.AuthServices.Configuration;
+using System.Reflection;
+using System.IdentityModel.Tokens;
+using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
+using System.IO;
 
 namespace Kentor.AuthServices
 {
@@ -283,12 +283,9 @@ namespace Kentor.AuthServices
                         keyIdentifier.GetType().Name));
                 }
 
-                using (var certificate = new X509Certificate2(rawCert.GetX509RawData()))
+                if (!new X509Certificate2(rawCert.GetX509RawData()).Verify())
                 {
-                    if (!certificate.Verify())
-                    {
-                        throw new InvalidSignatureException("The signature was valid, but the verification of the certificate failed. Is it expired or revoked? Are you sure you really want to enable ValidateCertificates (it's normally not needed)?");
-                    }
+                    throw new InvalidSignatureException("The signature was valid, but the verification of the certificate failed. Is it expired or revoked? Are you sure you really want to enable ValidateCertificates (it's normally not needed)?");
                 }
             }
         }
