@@ -33,6 +33,11 @@ namespace Kentor.AuthServices.AspNetCore
             }
 
             var authProperties = new AuthenticationProperties(result.RelayData);
+            if (result.RelayData == null || !authProperties.Items.ContainsKey("LoginProvider"))
+            {
+                authProperties.Items.Add("LoginProvider", "KentorAuthServices");
+            }
+
             authProperties.RedirectUri = result.Location.OriginalString;
 
             return AuthenticateResult.Success(new AuthenticationTicket(result.Principal, authProperties, Options.SignInAsAuthenticationType));
